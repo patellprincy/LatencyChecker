@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.kapt")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
@@ -26,8 +27,17 @@ android {
         kotlinCompilerExtensionVersion = "1.5.3"
     }
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
     kotlinOptions {
         jvmTarget = "17"
+    }
+
+    viewBinding {
+        enable = true
     }
 }
 
@@ -36,13 +46,6 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-
-    // Jetpack Compose
-    implementation("androidx.activity:activity-compose:1.9.0")
-    implementation("androidx.compose.ui:ui:1.6.4")
-    implementation("androidx.compose.material:material:1.6.4")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.6.4")
-    debugImplementation("androidx.compose.ui:ui-tooling:1.6.4")
 
     // Koin for Dependency Injection
     implementation("io.insert-koin:koin-android:3.5.0")
@@ -65,4 +68,10 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+
+    // ConstraintLayout for Compose
+    implementation("androidx.constraintlayout:constraintlayout:2.2.0-alpha13")
+    implementation("com.google.android.material:material:1.11.0")
+
+
 }

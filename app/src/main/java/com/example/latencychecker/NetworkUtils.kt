@@ -7,15 +7,17 @@ import android.net.NetworkCapabilities
 object NetworkUtils {
 
     fun getNetworkType(context: Context): String {
-        val connectivityManager =
-            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = connectivityManager.activeNetwork
-        val caps = connectivityManager.getNetworkCapabilities(network)
+        val capabilities = connectivityManager.getNetworkCapabilities(network)
+
         return when {
-            caps == null -> "No connection"
-            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
-            caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "Mobile"
-            else -> "Unknown"
+            capabilities == null -> "Unknown"
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "Cellular"
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "Ethernet"
+            else -> "Other"
         }
     }
-}
+    }
+

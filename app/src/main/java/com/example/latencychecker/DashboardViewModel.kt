@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.latencychecker.service.DnsLatencyChecker
-import com.example.latencychecker.service.SpeedTestService
+import com.example.latencychecker.SpeedTestService
 import com.example.latencychecker.util.NetworkUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

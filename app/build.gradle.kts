@@ -73,5 +73,8 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.2.0-alpha13")
     implementation("com.google.android.material:material:1.11.0")
 
+    // OkHttp3
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
 
 }

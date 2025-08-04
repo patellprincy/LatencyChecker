@@ -1,49 +1,43 @@
-package com.example.latencychecker.service
+package com.example.latencychecker
 
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.InputStream
-import java.net.URL
-import javax.net.ssl.HttpsURLConnection
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import kotlin.system.measureTimeMillis
 
 object SpeedTestService {
+    private val client = OkHttpClient()
 
     suspend fun measureDownloadSpeed(): Pair<Float, Long> = withContext(Dispatchers.IO) {
-        val testUrl = "https://speedtest.tele2.net/10MB.zip"
-        val buffer = ByteArray(1024)
+        val testUrl = "https://speed.cloudflare.com/__down?bytes=5242880" // ~5MB
         var totalBytes = 0
+        val buffer = ByteArray(8 * 1024) // 8 KB buffer
 
-        val time = measureTimeMillis {
-            try {
-                val url = URL(testUrl)
-                val conn = url.openConnection() as HttpsURLConnection
-                conn.connectTimeout = 5000
-                conn.readTimeout = 5000
-                conn.connect()
+        try {
+            val request = Request.Builder().url(testUrl).build()
+            val time = measureTimeMillis {
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw Exception("HTTP error: ${response.code}")
+                    }
 
-                conn.inputStream.use { input: InputStream ->
-                    while (true) {
-                        val bytesRead = input.read(buffer)
-                        if (bytesRead == -1) break
-                        totalBytes += bytesRead
-                        if (totalBytes >= 1024 * 1024 * 5) break // 5MB max
+                    response.body?.byteStream()?.use { input ->
+                        while (true) {
+                            val bytesRead = input.read(buffer)
+                            if (bytesRead == -1) break
+                            totalBytes += bytesRead
+                            if (totalBytes >= 1024 * 1024 * 5) break // Limit to 5 MB
+                        }
                     }
                 }
-                conn.disconnect()
-            } catch (e: Exception) {
-                Log.e("SpeedTest", "Download error: ${e.localizedMessage}")
             }
-        }
 
-        val speedMbps = if (time > 0) {
-            (totalBytes * 8f / (1000 * 1000)) / (time / 1000f)
-        } else {
-            0f
+            val speedMbps = (totalBytes * 8f / (1000 * 1000)) / (time / 1000f)
+            speedMbps to time
+        } catch (e: Exception) {
+            e.printStackTrace()
+            0f to 0L
         }
-
-        Log.d("SpeedTest", "Downloaded $totalBytes bytes in $time ms ($speedMbps Mbps)")
-        speedMbps to time
     }
 }

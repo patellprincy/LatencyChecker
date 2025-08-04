@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.latencychecker.service.DnsLatencyChecker
 import com.example.latencychecker.SpeedTestService
 import com.example.latencychecker.util.NetworkUtils
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -23,7 +24,14 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     val state: StateFlow<NetworkStats> = _state
 
     init {
+        // Initial call + loop every 30 seconds
         refreshNetworkStats()
+        viewModelScope.launch {
+            while (true) {
+                delay(30_000) // wait for 30 seconds
+                refreshNetworkStats()
+            }
+        }
     }
 
     fun refreshNetworkStats() {

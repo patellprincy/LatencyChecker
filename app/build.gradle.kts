@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "com.example.latencychecker"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.latencychecker"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -21,6 +21,7 @@ android {
 
     buildFeatures {
         compose = true
+        viewBinding = true
     }
 
     composeOptions {
@@ -61,6 +62,8 @@ dependencies {
 
     // Room (for Usage Stats)
     implementation("androidx.room:room-runtime:2.6.1")
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.activity)
     kapt("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
 

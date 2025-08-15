@@ -85,5 +85,16 @@
             android:padding="16dp" />
     </androidx.cardview.widget.CardView>
 
+    <!-- Per-App Data Usage List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvUsageStats"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:paddingTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/cardDns"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:listitem="@layout/item_app_usage" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,36 +1,57 @@
-package com.example.latencychecker.adapter
+package com.example.latencychecker
 
-import android.app.usage.UsageStats
-import android.content.pm.PackageManager
+import android.text.format.Formatter
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.example.latencychecker.databinding.ActivityAppUsageAdapterBinding
 
-class AppUsageAdapter(
-    private val stats: List<UsageStats>,
-    private val pm: PackageManager
-) : RecyclerView.Adapter<AppUsageAdapter.UsageViewHolder>() {
+class AppUsageAdapter : RecyclerView.Adapter<AppUsageAdapter.UsageViewHolder>() {
 
-    inner class UsageViewHolder(val binding: ActivityAppUsageAdapterBinding) :
-        RecyclerView.ViewHolder(binding.root)
+    private var dataList = listOf<AppDataUsage>()
+    private var totalDataBytes: Long = 0
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UsageViewHolder {
-        val inflater = LayoutInflater.from(parent.context)
-        val binding = ActivityAppUsageAdapterBinding.inflate(inflater, parent, false)
-        return UsageViewHolder(binding)
+    fun submit(data: List<AppDataUsage>) {
+        dataList = data
+        totalDataBytes = data.sumOf { it.totalBytes } // Calculate total once
+        notifyDataSetChanged()
     }
 
-    override fun getItemCount() = stats.size
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UsageViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.activity_app_usage_adapter, parent, false)
+        return UsageViewHolder(view)
+    }
 
     override fun onBindViewHolder(holder: UsageViewHolder, position: Int) {
-        val stat = stats[position]
-        val appName = try {
-            pm.getApplicationLabel(pm.getApplicationInfo(stat.packageName, 0)).toString()
-        } catch (e: Exception) {
-            stat.packageName
-        }
-        holder.binding.tvAppName.text = appName
-        holder.binding.tvTime.text = "${stat.totalTimeInForeground / 1000} sec"
+        val item = dataList[position]
+
+        holder.icon.setImageDrawable(item.appIcon)
+        holder.label.text = item.appName
+        holder.packageName.text = item.packageName
+
+        // Calculate percentage
+        val percentage = if (totalDataBytes > 0) {
+            (item.totalBytes.toDouble() / totalDataBytes.toDouble()) * 100
+        } else 0.0
+
+        // Show formatted size + percentage
+        holder.bytes.text = "Total: ${Formatter.formatFileSize(holder.itemView.context, item.totalBytes)} (${String.format("%.1f", percentage)}%)"
+
+        // Progress bar shows proportion of total usage
+        holder.progress.progress = percentage.toInt()
+    }
+
+    override fun getItemCount(): Int = dataList.size
+
+    class UsageViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val icon: ImageView = view.findViewById(R.id.icon)
+        val label: TextView = view.findViewById(R.id.label)
+        val packageName: TextView = view.findViewById(R.id.packageName)
+        val bytes: TextView = view.findViewById(R.id.bytes)
+        val progress: ProgressBar = view.findViewById(R.id.progress)
     }
 }

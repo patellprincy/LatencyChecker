@@ -2,13 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Permissions -->
+    <!-- Internet and network state permissions (safe for production) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission
-        android:name="android.permission.PACKAGE_USAGE_STATS"
+
+    <!-- Usage stats permission (special access, user must enable in settings) -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    <!-- Optional: READ_PHONE_STATE is removed to pass Play Store review more easily.
+         If you later need mobile data per-app usage, request at runtime with clear explanation. -->
 
     <application
         android:name=".LatencyCheckerApp"
@@ -21,6 +26,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.LatencyChecker">
+
+
+
         <uses-library android:name="android.test.runner" android:required="false" />
 
         <activity

@@ -19,6 +19,11 @@ data class AppDataUsage(
 )
 
 object UsageStatsHelper {
+    lateinit var appContext: android.content.Context
+    fun init(context: android.content.Context) { appContext = context.applicationContext }
+
+    fun getAppDataUsageUnsafe(start: Long, end: Long): List<AppDataUsage> =
+        getAppDataUsage(appContext, start, end)
 
     fun getAppDataUsage(context: Context, startTime: Long, endTime: Long): List<AppDataUsage> {
         val realData = fetchRealData(context, startTime, endTime)

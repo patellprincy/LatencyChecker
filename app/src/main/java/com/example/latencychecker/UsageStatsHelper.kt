@@ -8,58 +8,56 @@ import android.net.ConnectivityManager
 import android.os.Build
 import android.os.RemoteException
 import android.util.Log
-
-data class AppDataUsage(
-    val appName: String,
-    val packageName: String,
-    val appIcon: android.graphics.drawable.Drawable,
-    val wifiBytes: Long,
-    val mobileBytes: Long,
-    val totalBytes: Long
-)
+import com.example.latencychecker.data.local.UsageSnapDao
+import com.example.latencychecker.data.local.UsageSnapshot
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 object UsageStatsHelper {
-    lateinit var appContext: android.content.Context
-    fun init(context: android.content.Context) { appContext = context.applicationContext }
+    private lateinit var appContext: Context
+    private lateinit var dao: UsageSnapDao
 
-    fun getAppDataUsageUnsafe(start: Long, end: Long): List<AppDataUsage> =
-        getAppDataUsage(appContext, start, end)
-
-    fun getAppDataUsage(context: Context, startTime: Long, endTime: Long): List<AppDataUsage> {
-        val realData = fetchRealData(context, startTime, endTime)
-
-        // If running on emulator or no data found, return mock data for UI testing
-        if (realData.isEmpty() || realData.all { it.totalBytes == 0L }) {
-            Log.w("UsageStatsHelper", "No real data found — showing mock data for testing")
-            return listOf(
-                AppDataUsage(
-                    "YouTube", "com.google.android.youtube",
-                    context.getDrawable(R.mipmap.ic_launcher)!!,
-                    500_000_000, 300_000_000, 800_000_000
-                ),
-                AppDataUsage(
-                    "Chrome", "com.android.chrome",
-                    context.getDrawable(R.mipmap.ic_launcher)!!,
-                    200_000_000, 100_000_000, 300_000_000
-                ),
-                AppDataUsage(
-                    "Instagram", "com.instagram.android",
-                    context.getDrawable(R.mipmap.ic_launcher)!!,
-                    100_000_000, 50_000_000, 150_000_000
-                )
-            )
-        }
-
-        return realData
+    fun init(context: Context, dao: UsageSnapDao) {
+        appContext = context.applicationContext
+        this.dao = dao
     }
 
-    private fun fetchRealData(context: Context, startTime: Long, endTime: Long): List<AppDataUsage> {
+    /** New function so MainActivity can directly get usage list */
+    suspend fun getAppDataUsage(
+        context: Context,
+        startTime: Long,
+        endTime: Long
+    ): List<AppDataUsage> = withContext(Dispatchers.IO) {
+        fetchRealData(context, startTime, endTime)
+    }
+
+    suspend fun getAppDataUsageAndStore(startTime: Long, endTime: Long) {
+        val usageList = fetchRealData(appContext, startTime, endTime)
+        val timestamp = System.currentTimeMillis()
+
+        withContext(Dispatchers.IO) {
+            usageList.forEach { usage ->
+                dao.insert(
+                    UsageSnapshot(
+                        appName = usage.appName,
+                        dataUsed = usage.totalBytes,
+                        timestamp = timestamp
+                    )
+                )
+            }
+        }
+    }
+
+    private fun fetchRealData(
+        context: Context,
+        startTime: Long,
+        endTime: Long
+    ): List<AppDataUsage> {
         val networkStatsManager = context.getSystemService(Context.NETWORK_STATS_SERVICE) as NetworkStatsManager
         val packageManager = context.packageManager
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val appList = mutableListOf<AppDataUsage>()
 
-        // Get only apps that actually have usage data — no QUERY_ALL_PACKAGES
         val usageStats = usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_DAILY, startTime, endTime
         )
@@ -78,23 +76,12 @@ object UsageStatsHelper {
                     val appName = packageManager.getApplicationLabel(appInfo).toString()
                     val appIcon = packageManager.getApplicationIcon(appInfo)
 
-                    appList.add(
-                        AppDataUsage(
-                            appName = appName,
-                            packageName = packageName,
-                            appIcon = appIcon,
-                            wifiBytes = wifiBytes,
-                            mobileBytes = mobileBytes,
-                            totalBytes = totalBytes
-                        )
-                    )
+                    appList.add(AppDataUsage(appName, packageName, appIcon, wifiBytes, mobileBytes, totalBytes))
                 }
             } catch (e: Exception) {
                 Log.e("UsageStatsHelper", "Error fetching usage for $packageName", e)
             }
         }
-
-        // Sort by highest usage first
         return appList.sortedByDescending { it.totalBytes }
     }
 

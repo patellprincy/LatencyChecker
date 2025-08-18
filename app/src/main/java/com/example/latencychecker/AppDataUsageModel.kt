@@ -1,11 +1,16 @@
-package com.example.latencychecker.model
+package com.example.latencychecker
 
 import android.graphics.drawable.Drawable
 
+/**
+ * Canonical model used everywhere. Make sure there is no other duplicate
+ * class named AppDataUsage anywhere in the project.
+ */
 data class AppDataUsage(
-    val appName: String,              // User-friendly app name
-    val appIcon: Drawable,            // Icon drawable
-    val wifiBytes: Long,              // Wi-Fi data usage in bytes
-    val mobileBytes: Long,            // Mobile data usage in bytes
-    val totalBytes: Long               // Total (Wi-Fi + Mobile)
+    val appName: String,
+    val packageName: String,
+    val appIcon: Drawable,
+    val wifiBytes: Long,
+    val mobileBytes: Long,
+    val totalBytes: Long
 )

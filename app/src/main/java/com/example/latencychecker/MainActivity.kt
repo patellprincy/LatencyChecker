@@ -18,7 +18,6 @@ import kotlinx.coroutines.withContext
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.util.concurrent.TimeUnit
 
-
 class MainActivity : ComponentActivity() {
 
     private val viewModel: DashboardViewModel by viewModel()
@@ -36,10 +35,10 @@ class MainActivity : ComponentActivity() {
         initViews()
         observeState()
 
-        if (!hasUsageStatsPermission()) {
-            requestUsageStatsPermission()
-        } else {
+        if (hasUsageStatsPermission()) {
             loadAppUsageData()
+        } else {
+            requestUsageStatsPermission()
         }
     }
 
@@ -69,7 +68,11 @@ class MainActivity : ComponentActivity() {
         val startTime = endTime - TimeUnit.DAYS.toMillis(1)
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val data = UsageStatsHelper.getAppDataUsage(this@MainActivity, startTime, endTime)
+            val data = UsageStatsHelper.getAppDataUsage(
+                context = this@MainActivity,
+                startTime = startTime,
+                endTime = endTime
+            )
             withContext(Dispatchers.Main) {
                 usageAdapter.submit(data)
             }

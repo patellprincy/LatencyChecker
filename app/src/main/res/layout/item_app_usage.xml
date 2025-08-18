@@ -4,56 +4,122 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="8dp">
+    android:padding="12dp">
 
-    <!-- App Icon -->
     <ImageView
-        android:id="@+id/ivAppIcon"
+        android:id="@+id/icon"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:contentDescription="@string/app_icon"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- App Name -->
     <TextView
-        android:id="@+id/tvAppName"
+        android:id="@+id/label"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="App Name"
-        android:textSize="16sp"
         android:textStyle="bold"
-        app:layout_constraintStart_toEndOf="@id/ivAppIcon"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0"
+        android:textSize="16sp"
+        android:maxLines="1"
         android:ellipsize="end"
-        android:singleLine="true"/>
+        android:layout_marginStart="12dp"
+        app:layout_constraintStart_toEndOf="@id/icon"
+        app:layout_constraintTop_toTopOf="@id/icon"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Data Usage -->
     <TextView
-        android:id="@+id/tvDataUsage"
+        android:id="@+id/packageName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="200 MB"
-        android:textSize="14sp"
-        app:layout_constraintStart_toEndOf="@id/ivAppIcon"
-        app:layout_constraintTop_toBottomOf="@id/tvAppName"
-        app:layout_constraintEnd_toStartOf="@id/tvDataPercentage"
+        android:textColor="#808080"
+        android:textSize="12sp"
+        android:maxLines="1"
         android:ellipsize="end"
-        android:singleLine="true"/>
+        app:layout_constraintStart_toStartOf="@id/label"
+        app:layout_constraintTop_toBottomOf="@id/label"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Data Usage Percentage -->
+    <!-- Overall total and % of TOTAL across list -->
     <TextView
-        android:id="@+id/tvDataPercentage"
+        android:id="@+id/bytes"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="25%"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:textColor="@android:color/holo_blue_dark"
-        app:layout_constraintBaseline_toBaselineOf="@id/tvDataUsage"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        android:textSize="13sp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="@id/label"
+        app:layout_constraintTop_toBottomOf="@id/packageName" />
+
+    <ProgressBar
+        android:id="@+id/progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="6dp"
+        android:max="100"
+        android:indeterminate="false"
+        app:layout_constraintStart_toStartOf="@id/label"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/bytes"
+        android:layout_marginTop="6dp" />
+
+    <!-- Per-app Wi-Fi breakdown -->
+    <TextView
+        android:id="@+id/wifiLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="Wi-Fi:"
+        android:textSize="12sp"
+        app:layout_constraintStart_toStartOf="@id/label"
+        app:layout_constraintTop_toBottomOf="@id/progress" />
+
+    <TextView
+        android:id="@+id/wifiValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="12sp"
+        app:layout_constraintBaseline_toBaselineOf="@id/wifiLabel"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <ProgressBar
+        android:id="@+id/wifiProgress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="5dp"
+        android:max="100"
+        app:layout_constraintStart_toStartOf="@id/wifiLabel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/wifiLabel"
+        android:layout_marginTop="4dp" />
+
+    <!-- Per-app Mobile breakdown -->
+    <TextView
+        android:id="@+id/mobileLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Mobile:"
+        android:textSize="12sp"
+        app:layout_constraintStart_toStartOf="@id/label"
+        app:layout_constraintTop_toBottomOf="@id/wifiProgress" />
+
+    <TextView
+        android:id="@+id/mobileValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="12sp"
+        app:layout_constraintBaseline_toBaselineOf="@id/mobileLabel"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <ProgressBar
+        android:id="@+id/mobileProgress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="5dp"
+        android:max="100"
+        app:layout_constraintStart_toStartOf="@id/mobileLabel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/mobileLabel"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

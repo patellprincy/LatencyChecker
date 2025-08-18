@@ -1,10 +1,9 @@
-package com.example.latencychecker
+package com.example.latencychecker.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
-
-@Database(entities = [UsageSnapshot::class], version = 1)
+@Database(entities = [UsageSnapshot::class], version = 1, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun usageDao(): UsageSnapshotDao
+    abstract fun usageSnapDao(): UsageSnapDao
 }

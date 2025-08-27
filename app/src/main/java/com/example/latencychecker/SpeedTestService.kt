@@ -6,7 +6,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import kotlin.system.measureTimeMillis
 
-object SpeedTestService {
+object  SpeedTestService {
     private val client = OkHttpClient()
 
     suspend fun measureDownloadSpeed(): Pair<Float, Long> = withContext(Dispatchers.IO) {

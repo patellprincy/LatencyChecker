@@ -2,17 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Internet and network state permissions (safe for production) -->
+    <!-- Network + policy-safe permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-
-    <!-- Usage stats permission (special access, user must enable in settings) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:targetApi="33"/>
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
-
-    <!-- Optional: READ_PHONE_STATE is removed to pass Play Store review more easily.
-         If you later need mobile data per-app usage, request at runtime with clear explanation. -->
 
     <application
         android:name=".LatencyCheckerApp"
@@ -26,14 +22,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LatencyChecker">
 
-
-
+        <!-- (Optional) don't block build tools if missing -->
         <uses-library android:name="android.test.runner" android:required="false" />
 
-        <activity
-            android:name=".UsageStatsActivity"
-            android:exported="false" />
-
+        <!-- Launcher -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -43,6 +35,41 @@
             </intent-filter>
         </activity>
 
+        <!-- Stats screen -->
+        <activity
+            android:name=".UsageStatsActivity"
+            android:exported="false" />
+
+        <!-- Quick Settings tile -->
+        <service
+            android:name=".tiles.NetWatchTileService"
+            android:label="NetWatch"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE"/>
+            </intent-filter>
+        </service>
+
+        <!-- Home screen widget -->
+        <receiver
+            android:name=".widget.NetWatchWidget"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/netwatch_widget_info"/>
+        </receiver>
+
     </application>
 
+    <!-- Package visibility for labeling apps (Play-safe) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
 </manifest>

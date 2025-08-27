@@ -2,9 +2,9 @@
 
     <!-- Base theme -->
     <style name="Base.Theme.LatencyChecker" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- you can put colorPrimary, colorOnPrimary etc. here -->
     </style>
 
     <!-- Final theme used in the manifest -->
-    <style name="Theme.LatencyChecker" parent="Base.Theme.LatencyChecker" />
-
+    <style name="Theme.LatencyChecker" parent="Base.Theme.LatencyChecker"/>
 </resources>

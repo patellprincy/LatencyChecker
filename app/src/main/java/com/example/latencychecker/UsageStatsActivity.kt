@@ -1,8 +1,10 @@
 package com.example.latencychecker
 
 import android.app.AppOpsManager
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -11,10 +13,12 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.widget.PopupMenu
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.latencychecker.databinding.ActivityUsageStatsBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -27,54 +31,57 @@ class UsageStatsActivity : AppCompatActivity() {
     private val adapter = AppUsageAdapter()
 
     private val handler = Handler(Looper.getMainLooper())
-    private val refreshRunnable = object : Runnable {
+    private val refresher = object : Runnable {
         override fun run() {
             loadAndRender()
             handler.postDelayed(this, 30_000)
         }
     }
 
-    // Data cache for filtering/sorting
-    private var fullList: List<AppDataUsage> = emptyList()
-    private var currentList: List<AppDataUsage> = emptyList()
-
     private enum class SortBy { TOTAL, WIFI, MOBILE, NAME }
     private var sortBy: SortBy = SortBy.TOTAL
-
-    // timeframe (default 24h)
     private var timeframeMillis: Long = TimeUnit.HOURS.toMillis(24)
+    private var fullList: List<AppDataUsage> = emptyList()
+
+    // track if we already popped the dialog during this resume to avoid double prompts
+    private var dialogShownThisResume = false
+
+    // Launcher to know when user returns from Settings
+    private val usageAccessLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            // When user comes back from Settings, check permission and act accordingly
+            if (hasUsageAccess()) {
+                Toast.makeText(this, "Usage Access granted", Toast.LENGTH_SHORT).show()
+                startRefreshing()
+            } else {
+                Toast.makeText(this, "Usage Access not granted", Toast.LENGTH_SHORT).show()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityUsageStatsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.toolbar.setTitleTextColor(android.graphics.Color.WHITE)
-
-        // RecyclerView
+        // Recycler
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
         binding.recyclerView.setHasFixedSize(true)
 
         // Pull-to-refresh
-        binding.swipeRefresh.setOnRefreshListener {
-            loadAndRender()
-        }
+        binding.swipeRefresh.setOnRefreshListener { loadAndRender() }
 
-        // Search filter
+        // Search
         binding.searchInput.addTextChangedListener(object : TextWatcher {
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = applyFiltersAndSort()
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                applyFiltersAndSort()
-            }
             override fun afterTextChanged(s: Editable?) {}
         })
 
         // Timeframe chips
-        binding.timeframeChips.setOnCheckedChangeListener { _, checkedId ->
-            timeframeMillis = when (checkedId) {
+        binding.timeframeChips.setOnCheckedChangeListener { _, id ->
+            timeframeMillis = when (id) {
                 binding.chip1h.id -> TimeUnit.HOURS.toMillis(1)
-                binding.chip24h.id -> TimeUnit.HOURS.toMillis(24)
                 binding.chip7d.id -> TimeUnit.DAYS.toMillis(7)
                 else -> TimeUnit.HOURS.toMillis(24)
             }
@@ -84,10 +91,8 @@ class UsageStatsActivity : AppCompatActivity() {
         // Sort menu
         binding.sortButton.setOnClickListener { anchor ->
             PopupMenu(this, anchor).apply {
-                menu.add("Sort by Total")
-                menu.add("Sort by Wi-Fi")
-                menu.add("Sort by Mobile")
-                menu.add("Sort by Name")
+                menu.add("Sort by Total"); menu.add("Sort by Wi-Fi")
+                menu.add("Sort by Mobile"); menu.add("Sort by Name")
                 setOnMenuItemClickListener {
                     sortBy = when (it.title.toString()) {
                         "Sort by Wi-Fi" -> SortBy.WIFI
@@ -101,71 +106,62 @@ class UsageStatsActivity : AppCompatActivity() {
                 show()
             }
         }
-
-        // Permission gate
-        if (!hasUsageStatsPermission()) {
-            requestUsageStatsPermission()
-            Toast.makeText(this, "Please grant Usage Access and return.", Toast.LENGTH_SHORT).show()
-        } else {
-            loadAndRender()
-        }
     }
 
     override fun onStart() {
         super.onStart()
-        if (hasUsageStatsPermission()) handler.post(refreshRunnable)
+        dialogShownThisResume = false
     }
 
-    override fun onStop() {
-        super.onStop()
-        handler.removeCallbacks(refreshRunnable)
-    }
+    override fun onResume() {
+        super.onResume()
+        handler.removeCallbacks(refresher)
 
-    private fun loadAndRender() {
-        val endTime = System.currentTimeMillis()
-        val startTime = max(0L, endTime - timeframeMillis)
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            val data = UsageStatsHelper.getAppDataUsage(
-                context = this@UsageStatsActivity,
-                startTime = startTime,
-                endTime = endTime
-            )
-
-            withContext(Dispatchers.Main) {
-                fullList = data
-                applyFiltersAndSort()
-                binding.swipeRefresh.isRefreshing = false
-
-                // Optional: update header metrics if you have them elsewhere
-                // binding.networkTypeText.text = "Network Type: ${NetworkUtils.getType(this@UsageStatsActivity)}"
-                // binding.downloadSpeedText.text = "Download Speed: ${SpeedTestService.latestMbps} Mbps"
-                // binding.dnsLatencyText.text = "DNS Latency: ${DnsLatencyChecker.latestMs} ms"
+        if (hasUsageAccess()) {
+            startRefreshing()
+        } else {
+            // ALWAYS show the small dialog whenever the app is opened without permission
+            if (!dialogShownThisResume) {
+                dialogShownThisResume = true
+                showUsageAccessDialog()
             }
         }
     }
 
-    private fun applyFiltersAndSort() {
-        val q = binding.searchInput.text?.toString()?.trim()?.lowercase().orEmpty()
-
-        // filter
-        var filtered = if (q.isEmpty()) fullList else fullList.filter {
-            it.appName.lowercase().contains(q) || it.packageName.lowercase().contains(q)
-        }
-
-        // sort
-        filtered = when (sortBy) {
-            SortBy.TOTAL -> filtered.sortedByDescending { it.totalBytes }
-            SortBy.WIFI  -> filtered.sortedByDescending { it.wifiBytes }
-            SortBy.MOBILE-> filtered.sortedByDescending { it.mobileBytes }
-            SortBy.NAME  -> filtered.sortedBy { it.appName.lowercase() }
-        }
-
-        currentList = filtered
-        adapter.submit(currentList)
+    override fun onStop() {
+        super.onStop()
+        handler.removeCallbacks(refresher)
     }
 
-    private fun hasUsageStatsPermission(): Boolean {
+    // ---- Permission dialog + settings deep-link ----
+
+    private fun showUsageAccessDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Allow Usage Access?")
+            .setMessage("LatencyChecker needs Usage Access to show per-app Wi-Fi/Mobile usage. This stays on your device.")
+            .setNegativeButton("Don’t allow", null)
+            .setPositiveButton("Allow") { _, _ -> openUsageAccessSettings() }
+            .setCancelable(true)
+            .show()
+    }
+
+    private fun openUsageAccessSettings() {
+        val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+            // Some OEMs honor these hints; harmless elsewhere
+            putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            data = Uri.fromParts("package", packageName, null)
+        }
+        try {
+            usageAccessLauncher.launch(intent)
+        } catch (_: ActivityNotFoundException) {
+            val details = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:$packageName")
+            }
+            usageAccessLauncher.launch(details)
+        }
+    }
+
+    private fun hasUsageAccess(): Boolean {
         val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
         val mode = appOps.checkOpNoThrow(
             AppOpsManager.OPSTR_GET_USAGE_STATS,
@@ -175,7 +171,39 @@ class UsageStatsActivity : AppCompatActivity() {
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
-    private fun requestUsageStatsPermission() {
-        startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+    // ---- Data + UI ----
+
+    private fun startRefreshing() {
+        loadAndRender()
+        handler.postDelayed(refresher, 30_000)
+    }
+
+    private fun loadAndRender() {
+        val end = System.currentTimeMillis()
+        val start = max(0L, end - timeframeMillis)
+
+        binding.swipeRefresh.isRefreshing = true
+        CoroutineScope(Dispatchers.IO).launch {
+            val data = UsageStatsHelper.getAppDataUsage(this@UsageStatsActivity, start, end)
+            withContext(Dispatchers.Main) {
+                fullList = data
+                applyFiltersAndSort()
+                binding.swipeRefresh.isRefreshing = false
+            }
+        }
+    }
+
+    private fun applyFiltersAndSort() {
+        val q = binding.searchInput.text?.toString()?.trim()?.lowercase().orEmpty()
+        var list = if (q.isEmpty()) fullList else fullList.filter {
+            it.appName.lowercase().contains(q) || it.packageName.lowercase().contains(q)
+        }
+        list = when (sortBy) {
+            SortBy.TOTAL  -> list.sortedByDescending { it.totalBytes }
+            SortBy.WIFI   -> list.sortedByDescending { it.wifiBytes }
+            SortBy.MOBILE -> list.sortedByDescending { it.mobileBytes }
+            SortBy.NAME   -> list.sortedBy { it.appName.lowercase() }
+        }
+        adapter.submit(list)
     }
 }

@@ -35,6 +35,7 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        allWarningsAsErrors = false
     }
 
     viewBinding {
@@ -86,6 +87,8 @@ dependencies {
 
     //swipe refresh layout
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+
+    implementation("com.google.android.material:material:1.12.0")
 
 
 }

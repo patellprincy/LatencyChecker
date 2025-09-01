@@ -5,32 +5,56 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.net.InetSocketAddress
+import java.net.Socket
+import kotlin.math.max
 
 object DnsLatencyChecker {
 
-    suspend fun pingHost(host: String = "google.com"): Long = withContext(Dispatchers.IO) {
-        try {
-            val process = Runtime.getRuntime().exec(arrayOf("/system/bin/ping", "-c", "1", host))
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            val output = StringBuilder()
-            var line: String?
+    /**
+     * Try ICMP ping first (may be blocked), then fall back to TCP connect RTT to :53.
+     */
+    suspend fun pingHost(host: String = "google.com", timeoutMs: Int = 1500): Long =
+        withContext(Dispatchers.IO) {
+            val icmp = runCatching { icmpPing(host) }.getOrDefault(-1L)
+            if (icmp > 0) return@withContext icmp
+            tcpRtt(host, 53, timeoutMs)
+        }
 
-            while (reader.readLine().also { line = it } != null) {
-                output.appendLine(line)
+    private fun icmpPing(host: String): Long {
+        return try {
+            val proc = Runtime.getRuntime().exec(arrayOf("/system/bin/ping", "-c", "1", host))
+            val reader = BufferedReader(InputStreamReader(proc.inputStream))
+            val out = buildString {
+                var line: String?
+                while (reader.readLine().also { line = it } != null) appendLine(line)
             }
+            proc.waitFor()
 
-            process.waitFor()
+            val ms = Regex("time=(\\d+(?:\\.\\d+)?)")
+                .find(out)?.groupValues?.get(1)?.toDoubleOrNull()?.toLong() ?: -1L
 
-            val matcher = Regex("time=(\\d+(\\.\\d+)?)").find(output.toString())
-            val latency = matcher?.groupValues?.get(1)?.toDoubleOrNull()?.toLong() ?: -1L
-
-            Log.d("DNS", "Ping output: $output")
-            Log.d("DNS", "Latency: $latency ms")
-
-            return@withContext latency
+            Log.d("DNS", "ICMP $host -> $ms ms")
+            ms
         } catch (e: Exception) {
-            Log.e("DNS", "Ping failed: ${e.localizedMessage}")
-            return@withContext -1L
+            Log.e("DNS", "ICMP failed: ${e.localizedMessage}")
+            -1L
+        }
+    }
+
+    private fun tcpRtt(host: String, port: Int, timeoutMs: Int): Long {
+        return runCatching {
+            val t0 = System.nanoTime()
+            Socket().use { s ->
+                // disable linger via the setter (property is read-only)
+                s.setSoLinger(false, 0)
+                s.tcpNoDelay = true
+                s.connect(InetSocketAddress(host, port), timeoutMs)
+            }
+            max(1, (System.nanoTime() - t0) / 1_000_000)
+        }.getOrElse {
+            Log.e("DNS", "TCP RTT failed: ${it.localizedMessage}")
+            -1L
         }
     }
 }

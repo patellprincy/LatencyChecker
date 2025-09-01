@@ -12,7 +12,7 @@ val dbModule = module {
             AppDatabase::class.java,
             "latency_checker.db"
         )
-            .fallbackToDestructiveMigration() // keep if you don’t have migrations yet
+            .fallbackToDestructiveMigration()
             .build()
     }
     single<UsageSnapDao> { get<AppDatabase>().usageSnapDao() }

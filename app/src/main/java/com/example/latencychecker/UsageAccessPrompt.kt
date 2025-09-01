@@ -20,8 +20,7 @@ object UsageAccessPrompt {
         )
         return mode == AppOpsManager.MODE_ALLOWED
     }
-
-    /** Show a friendly dialog explaining why, with a single “Allow for LatencyChecker” button. */
+        /** Shows a dialog explaining why we need Usage Access, with a button to open Settings. */
     fun showDialog(activity: Activity) {
         MaterialAlertDialogBuilder(activity)
             .setTitle("Allow Usage Access")
@@ -39,7 +38,7 @@ object UsageAccessPrompt {
 
     /** Best-effort deep links (safe & Play-compliant) */
     private fun openUsageAccessSettings(activity: Activity) {
-        // 1) Try usage-access list with a hint for our package (some OEMs respect EXTRA_APP_PACKAGE)
+        // 1) Trying usage-access list with a hint for our package (some OEMs respect EXTRA_APP_PACKAGE)
         val usageIntent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             putExtra(Settings.EXTRA_APP_PACKAGE, activity.packageName)

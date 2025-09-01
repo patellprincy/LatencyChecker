@@ -11,9 +11,6 @@ import kotlin.math.max
 
 object DnsLatencyChecker {
 
-    /**
-     * Try ICMP ping first (may be blocked), then fall back to TCP connect RTT to :53.
-     */
     suspend fun pingHost(host: String = "google.com", timeoutMs: Int = 1500): Long =
         withContext(Dispatchers.IO) {
             val icmp = runCatching { icmpPing(host) }.getOrDefault(-1L)

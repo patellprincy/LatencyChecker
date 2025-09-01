@@ -6,7 +6,7 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val viewModule = module {
-    // Adjust constructors if yours differ. Both assume they need UsageRepo.
+
     viewModel { DashboardViewModel(get()) }
     viewModel { AppUsageViewModel(get()) }
 }
